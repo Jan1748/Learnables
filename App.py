@@ -70,7 +70,12 @@ class ManagePanel(wx.Panel):
         self.question_list.InsertColumn(3, 'Answer', width=400)
         self.question_list.InsertColumn(4, 'Answered Right', width=100)
         # self.add_line()
-
+        self.delete_button = wx.Button(self, label="Delete Question", pos=(1000, 15))
+        self.Bind(wx.EVT_BUTTON, self.delete_question, self.delete_button)
+        self.delete_id = wx.TextCtrl(self, size=(250, -1), pos=(730, 15))
+        self.delete_id.SetHint('Input the ID of the deleting question here')
+        self.delete_dataset_button = wx.Button(self, label="Delete Question", pos=(420, 15))
+        self.Bind(wx.EVT_BUTTON, self.delete_dataset_and_question, self.delete_dataset_button)
         # self.question_list.Hide()
 
     def show_questions(self, event):
@@ -95,6 +100,17 @@ class ManagePanel(wx.Panel):
         self.ch.SetItems(self.choices)
         self.ch.SetSelection(0)
 
+    def delete_question(self, event):
+        print('Delete Question')
+        id_to_delete = self.delete_id.GetValue()
+        delete_question(self.database, id_to_delete)
+        self.show_questions(0)
+
+    def delete_dataset_and_question(self, event):
+        dataset = self.ch.GetString(self.ch.GetSelection())
+        delete_dataset_and_questions(self.database, dataset)
+        self.refresh_datasets()
+        self.show_questions(0)
 
 class CreatePanel(wx.Panel):
     def __init__(self, parent, database):

@@ -37,3 +37,17 @@ def right_counter(database: Database, question_id):
     database.connect()
     database.right_counter_up(question_id)
     database.close_connection()
+
+def delete_question(database: Database, question_id):
+    database.connect()
+    database.delete_question(question_id)
+    database.close_connection()
+
+def delete_dataset_and_questions(database: Database, dataset_name):
+    database.connect()
+    if dataset_name == 'All':
+        return
+    else:
+        dataset_id = int(database.get_dataset_id_by_name(dataset_name)[0][0])
+    database.delete_dataset(dataset_id)
+    database.close_connection()

@@ -77,3 +77,15 @@ class Database:
         correct_answers += 1
         sql_string = f"UPDATE Questions SET CorrectAnswers = {correct_answers} WHERE QuestionID = (?)"
         self.db_select(sql_string, values)
+
+    def delete_question(self, question_id):
+        sql_string = "Delete FROM Questions WHERE QuestionID = (?)"
+        values = (question_id,)
+        self.db_select(sql_string, values)
+
+    def delete_dataset(self, dataset_id):
+        sql_string = "Delete FROM Questions WHERE DatasetID = (?)"
+        values = (dataset_id,)
+        self.db_select(sql_string, values)
+        sql_string = "Delete FROM Datasets WHERE DatasetID = (?)"
+        self.db_select(sql_string, values)
