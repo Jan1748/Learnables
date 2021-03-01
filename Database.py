@@ -1,3 +1,4 @@
+import random
 import sqlite3
 
 
@@ -50,22 +51,29 @@ class Database:
         self.db_execute(sql_string, values)
 
     def get_all_datasets(self):
-        sql_string = "Select * From Datasets"
+        sql_string = "Select DatasetName From Datasets"
         datasets = self.db_select(sql_string)
         return datasets
 
+    def get_dataset_id_by_name(self, dataset_name):
+        sql_string = "Select DatasetID From Datasets WHERE DatasetName == (?)"
+        values = (dataset_name,)
+        datasets = self.db_select(sql_string, values)
+        return datasets
+
     def get_all_questions(self, dataset_id: int):
-        sql_string = "Select * From Questions WHERE DatasetID = ?"
-        values = (dataset_id,)
-        rows = self.db_select(sql_string, values)
-        return rows
+        values = None
+        if dataset_id == -1:
+            sql_string = "Select QuestionID, DatasetName, Question, Answer, CorrectAnswers FROM Questions Left JOIN Datasets D on Questions.DatasetID = D.DatasetID"
+        else:
+            sql_string = "Select QuestionID, DatasetName, Question, Answer, CorrectAnswers FROM Questions Left JOIN Datasets D on Questions.DatasetID = D.DatasetID WHERE D.DatasetID = (?)"
+            values = (dataset_id,)
+        return self.db_select(sql_string, values)
 
-
-d = Database('Test.db')
-d.create_tables()
-d.connect()
-d.insert_dataset('Spanisch')
-d.insert_question(1, 'Are you there?', 'No...')
-rows = d.get_all_questions(1)
-print(rows)
-d.close_connection()
+    def right_counter_up(self, question_id):
+        sql_string = "Select CorrectAnswers FROM Questions WHERE QuestionID = (?)"
+        values = (question_id,)
+        correct_answers = int(self.db_select(sql_string, values)[0][0])
+        correct_answers += 1
+        sql_string = f"UPDATE Questions SET CorrectAnswers = {correct_answers} WHERE QuestionID = (?)"
+        self.db_select(sql_string, values)
