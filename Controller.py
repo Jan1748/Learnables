@@ -33,15 +33,18 @@ def create_dataset(database: Database, dataset_name):
     database.insert_dataset(dataset_name)
     database.close_connection()
 
+
 def right_counter(database: Database, question_id):
     database.connect()
     database.right_counter_up(question_id)
     database.close_connection()
 
+
 def delete_question(database: Database, question_id):
     database.connect()
     database.delete_question(question_id)
     database.close_connection()
+
 
 def delete_dataset_and_questions(database: Database, dataset_name):
     database.connect()
