@@ -3,14 +3,11 @@ import random
 import wx
 
 from Controller import *
-from Database import Database
-from Test import *
 
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        self.database = Database('Learnables.db')
-        self.database.create_tables()
+        self.controller = Controller()
         wx.Frame.__init__(self, None, title="Learnables", size=(1200, 800))
         menubar = wx.MenuBar()
         navigation = wx.Menu()
@@ -20,9 +17,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.switch_to_learning_panel, learning_button)
         self.Bind(wx.EVT_MENU, self.switch_to_create_panel, create_button)
         self.Bind(wx.EVT_MENU, self.switch_to_manage_panel, manage_button)
-        self.learning_panel = LearningPanel(self, self.database)
-        self.create_panel = CreatePanel(self, self.database)
-        self.manage_panel = ManagePanel(self, self.database)
+        self.learning_panel = LearningPanel(self, self.controller)
+        self.create_panel = CreatePanel(self, self.controller)
+        self.manage_panel = ManagePanel(self, self.controller)
         menubar.Append(navigation, 'Navigation')
         self.SetMenuBar(menubar)
 
@@ -57,10 +54,10 @@ class MainFrame(wx.Frame):
 
 
 class ManagePanel(wx.Panel):
-    def __init__(self, parent, database):
+    def __init__(self, parent, controller):
         wx.Panel.__init__(self, parent=parent)
-        self.database = database
-        self.choices = get_all_datasets(self.database, True)
+        self.controller = controller
+        self.choices = self.controller.get_all_datasets(True)
         self.choice_field = wx.Choice(self, -1, choices=self.choices, size=(275, -1), pos=(15, 15))
         self.choice_field.SetSelection(0)
         self.show_question_button = wx.Button(self, label="Show Questions", pos=(300, 15))
@@ -83,7 +80,7 @@ class ManagePanel(wx.Panel):
     def show_questions(self, event):
         self.index = 0
         dataset = self.choice_field.GetString(self.choice_field.GetSelection())
-        questions = get_questions(self.database, dataset)
+        questions = self.controller.get_questions(dataset)
         self.question_list.DeleteAllItems()
         for question in questions:
             self.add_line(question[0], question[1], question[2], question[3], question[4])
@@ -97,31 +94,31 @@ class ManagePanel(wx.Panel):
         self.index += 1
 
     def refresh_datasets(self):
-        self.choices = get_all_datasets(self.database, True)
+        self.choices = self.controller.get_all_datasets(True)
         self.choice_field.SetItems(self.choices)
         self.choice_field.SetSelection(0)
 
     def delete_question(self, event):
         id_to_delete = self.delete_id.GetValue()
-        delete_question(self.database, id_to_delete)
+        self.controller.delete_question(id_to_delete)
         self.show_questions(0)
 
     def delete_dataset_and_question(self, event):
         dataset = self.choice_field.GetString(self.choice_field.GetSelection())
-        delete_dataset_and_questions(self.database, dataset)
+        self.controller.delete_dataset_and_questions(dataset)
         self.refresh_datasets()
         self.show_questions(0)
 
 class CreatePanel(wx.Panel):
-    def __init__(self, parent, database):
+    def __init__(self, parent, controller):
         wx.Panel.__init__(self, parent=parent)
-        self.database = database
+        self.controller = controller
         text = wx.StaticText(self, -1, 'Create Question', size=(20, 100), pos=(15, 100))
         font = wx.Font(18, wx.DECORATIVE, wx.FONTSTYLE_NORMAL, wx.NORMAL)
         text.SetFont(font)
 
         # Question Form
-        self.choices = self.datasets = get_all_datasets(self.database, False)
+        self.choices = self.controller.get_all_datasets(False)
         wx.StaticText(self, -1, "Choose a dataset to which the question should be assigned", size=(600, -1), pos=(15, 180))
         self.choice_field = wx.Choice(self, -1, choices=self.choices, size=(600, 200), pos=(15, 200))
         self.choice_field.SetSelection(0)
@@ -147,29 +144,29 @@ class CreatePanel(wx.Panel):
         dataset = self.choice_field.GetString(self.choice_field.GetSelection())
         question = self.question.GetValue()
         answer = self.answer.GetValue()
-        create_question(self.database, dataset, question, answer)
+        self.controller.create_question(dataset, question, answer)
         self.question.Clear()
         self.answer.Clear()
 
     def create_dataset(self, event):
         dataset_name = self.dataset_name.GetValue()
         self.dataset_name.Clear()
-        create_dataset(self.database, dataset_name)
+        self.controller.create_dataset(dataset_name)
         self.refresh_datasets()
 
     def refresh_datasets(self):
-        self.choices = get_all_datasets(self.database, False)
+        self.choices = self.controller.get_all_datasets(False)
         self.choice_field.SetItems(self.choices)
         self.choice_field.SetSelection(0)
 
 
 class LearningPanel(wx.Panel):
-    def __init__(self, parent, database):
+    def __init__(self, parent, controller):
         wx.Panel.__init__(self, parent=parent)
-        self.database = database
+        self.controller = controller
         self.questions = None
         self.question_index = 0
-        self.choices = self.datasets = get_all_datasets(self.database, True)
+        self.choices = self.datasets = self.controller.get_all_datasets(True)
         self.choice_field = wx.Choice(self, -1, choices=self.choices, size=(275, -1), pos=(15, 15))
         self.choice_field.SetSelection(0)
         self.button = wx.Button(self, label="Start Learning", pos=(300, 15))
@@ -184,32 +181,38 @@ class LearningPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.next, self.next_button)
 
     def right_button_counter(self, event):
-        right_counter(self.database, self.questions[self.question_index][0])
+        self.controller.right_counter(self.questions[self.question_index][0])
         self.right_button.Hide()
 
     def show_answer(self, event):
-        self.question_field.SetLabel(str(self.questions[self.question_index][3]))
-        self.right_button.Show()
+        try:
+            self.question_field.SetLabel(str(self.questions[self.question_index][3]))
+            self.right_button.Show()
+        except:
+            pass
 
     def next(self, event):
         self.question_index += 1
         if len(self.questions) <= self.question_index:
             self.question_index = 0
-        self.question_field.SetLabel(str(self.questions[self.question_index][2]))
-        self.right_button.Hide()
+        try:
+            self.question_field.SetLabel(str(self.questions[self.question_index][2]))
+            self.right_button.Hide()
+        except:
+            pass
 
     def select_dataset(self, event):
         dataset_name = self.choice_field.GetString(self.choice_field.GetSelection())
-        self.questions = get_questions(self.database, dataset_name)
+        self.questions = self.controller.get_questions(dataset_name)
         self.question_index = 0
         if self.questions is None or len(self.questions) == 0:
             self.question_field.SetLabel('No Questions Available')
         else:
             random.shuffle(self.questions)
-        self.question_field.SetLabel(str(self.questions[self.question_index][2]))
+            self.question_field.SetLabel(str(self.questions[self.question_index][2]))
 
     def refresh_datasets(self):
-        self.choices = get_all_datasets(self.database, True)
+        self.choices = self.controller.get_all_datasets(True)
         self.choice_field.SetItems(self.choices)
         self.choice_field.SetSelection(0)
 
